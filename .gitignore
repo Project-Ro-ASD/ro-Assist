@@ -1,0 +1,6 @@
+build/
+*.user
+.qtc_clf/
+ro-assist
+*.o
+moc_*.cpp
