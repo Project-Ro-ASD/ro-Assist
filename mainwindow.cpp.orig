@@ -192,9 +192,6 @@ void MainWindow::setupUi()
 
     logConsole->setReadOnly(true);
     logConsole->setObjectName("logConsole");
-    logConsole->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    logConsole->setMaximumHeight(150);
-    logConsole->setMinimumHeight(100);
 
     panelLayout->addWidget(versionLabel, 0, Qt::AlignCenter);
     panelLayout->addSpacing(10);
@@ -257,9 +254,6 @@ void MainWindow::setupUi()
 
     gameLogConsole->setReadOnly(true);
     gameLogConsole->setObjectName("logConsole");
-    gameLogConsole->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    gameLogConsole->setMaximumHeight(150);
-    gameLogConsole->setMinimumHeight(100);
 
     gamePanelLayout->addSpacing(40);
     gamePanelLayout->addWidget(gameStatusLabel, 0, Qt::AlignCenter);
@@ -380,9 +374,6 @@ void MainWindow::setupUi()
 
     officeLogConsole->setReadOnly(true);
     officeLogConsole->setObjectName("logConsole");
-    officeLogConsole->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    officeLogConsole->setMaximumHeight(150);
-    officeLogConsole->setMinimumHeight(100);
 
     officePanelLayout->addSpacing(30);
     officePanelLayout->addWidget(officeStatusLabel, 0, Qt::AlignCenter);

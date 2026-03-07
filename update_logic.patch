@@ -1,0 +1,328 @@
+--- mainwindow.cpp
++++ mainwindow.cpp
+@@ -47,6 +47,9 @@
+     connect(checkUpdateProcess, &QProcess::finished, this, &MainWindow::handleCheckUpdateFinished);
+ 
+     connect(carouselTimer, &QTimer::timeout, this, &MainWindow::nextSlide);
++    
++    // Default hide the raw logs initially
++    logConsole->hide(); gameLogConsole->hide(); officeLogConsole->hide();
+     carouselTimer->start(5000);
+ 
+     setInitialUpdateStatus();
+@@ -148,15 +151,20 @@
+     progressBar->hide(); 
+     progressBar->setFixedWidth(400);
+ 
++    toggleLogBtn = new QPushButton(this);
++    toggleLogBtn->setObjectName("backButton");
++    toggleLogBtn->setCursor(Qt::PointingHandCursor);
++    connect(toggleLogBtn, &QPushButton::clicked, this, &MainWindow::toggleUpdateLogs);
++
+     logConsole->setReadOnly(true);
+     logConsole->setObjectName("logConsole");
+     logConsole->setPlaceholderText("Log kayıtları / Logs...");
+ 
+     panelLayout->addWidget(versionLabel, 0, Qt::AlignCenter);
+     panelLayout->addSpacing(10);
+     panelLayout->addWidget(statusLabel, 0, Qt::AlignCenter);
+     panelLayout->addSpacing(20);
+     panelLayout->addWidget(updateButton, 0, Qt::AlignCenter);
+     panelLayout->addSpacing(20);
+     panelLayout->addWidget(progressBar, 0, Qt::AlignCenter);
+     panelLayout->addSpacing(10);
++    panelLayout->addWidget(toggleLogBtn, 0, Qt::AlignCenter);
++    panelLayout->addSpacing(5);
+     panelLayout->addWidget(logConsole, 1);
+     
+     updateLayout->addLayout(updateTopLayout);
+@@ -190,15 +198,20 @@
+     gameProgressBar->hide(); 
+     gameProgressBar->setFixedWidth(400);
+ 
++    toggleGameLogBtn = new QPushButton(this);
++    toggleGameLogBtn->setObjectName("backButton");
++    toggleGameLogBtn->setCursor(Qt::PointingHandCursor);
++    connect(toggleGameLogBtn, &QPushButton::clicked, this, &MainWindow::toggleGameLogs);
++
+     gameLogConsole->setReadOnly(true);
+     gameLogConsole->setObjectName("logConsole");
+     gameLogConsole->setPlaceholderText("Log kayıtları / Logs...");
+ 
+     gamePanelLayout->addSpacing(40);
+     gamePanelLayout->addWidget(gameStatusLabel, 0, Qt::AlignCenter);
+     gamePanelLayout->addSpacing(20);
+     gamePanelLayout->addWidget(gameInstallButton, 0, Qt::AlignCenter);
+     gamePanelLayout->addSpacing(20);
+     gamePanelLayout->addWidget(gameProgressBar, 0, Qt::AlignCenter);
+     gamePanelLayout->addSpacing(10);
++    gamePanelLayout->addWidget(toggleGameLogBtn, 0, Qt::AlignCenter);
++    gamePanelLayout->addSpacing(5);
+     gamePanelLayout->addWidget(gameLogConsole, 1);
+ 
+     gameLayout->addLayout(gameTopLayout);
+@@ -248,8 +261,9 @@
+     
+     officeLevelComboBox = new QComboBox(this);
+     officeLevelComboBox->setMinimumWidth(150);
+     officeLevelComboBox->setMinimumHeight(40);
+-    officeLevelComboBox->addItem("Basic", QVariant::fromValue((int)Basic));
+-    officeLevelComboBox->addItem("Medium", QVariant::fromValue((int)Medium));
+-    officeLevelComboBox->addItem("Advanced", QVariant::fromValue((int)Advanced));
++    officeLevelComboBox->addItem("LibreOffice", QVariant::fromValue((int)LibreOfficeBasic));
++    officeLevelComboBox->addItem("LibreOffice (Full)", QVariant::fromValue((int)LibreOfficeFull));
++    officeLevelComboBox->addItem("OnlyOffice", QVariant::fromValue((int)OnlyOffice));
++    officeLevelComboBox->addItem("WPS Office", QVariant::fromValue((int)WPSOffice));
+     connect(officeLevelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onOfficeLevelChanged);
+     
+     officeTopLayout->addWidget(officeLevelComboBox);
+@@ -275,15 +289,20 @@
+     officeProgressBar->hide(); 
+     officeProgressBar->setFixedWidth(400);
+ 
++    toggleOfficeLogBtn = new QPushButton(this);
++    toggleOfficeLogBtn->setObjectName("backButton");
++    toggleOfficeLogBtn->setCursor(Qt::PointingHandCursor);
++    connect(toggleOfficeLogBtn, &QPushButton::clicked, this, &MainWindow::toggleOfficeLogs);
++
+     officeLogConsole->setReadOnly(true);
+     officeLogConsole->setObjectName("logConsole");
+     officeLogConsole->setPlaceholderText("Log kayıtları / Logs...");
+ 
+     officePanelLayout->addSpacing(30);
+     officePanelLayout->addWidget(officeStatusLabel, 0, Qt::AlignCenter);
+     officePanelLayout->addSpacing(10);
+     officePanelLayout->addWidget(officeDescLabel, 0, Qt::AlignCenter);
+     officePanelLayout->addSpacing(20);
+     officePanelLayout->addWidget(officeInstallButton, 0, Qt::AlignCenter);
+     officePanelLayout->addSpacing(20);
+     officePanelLayout->addWidget(officeProgressBar, 0, Qt::AlignCenter);
+     officePanelLayout->addSpacing(10);
++    officePanelLayout->addWidget(toggleOfficeLogBtn, 0, Qt::AlignCenter);
++    officePanelLayout->addSpacing(5);
+     officePanelLayout->addWidget(officeLogConsole, 1);
+ 
+     officeLayout->addLayout(officeTopLayout);
+@@ -395,16 +414,20 @@
+     int enumVal = officeLevelComboBox->itemData(index).toInt();
+     
+     // TR default
+-    QString desc = "Word (Writer), Excel (Calc) ve PowerPoint (Impress) kurar.";
+-    if (enumVal == Medium) desc = "Temel paketlere ek olarak PDF ve form programları dahil tam LibreOffice paketini kurar.";
+-    else if (enumVal == Advanced) desc = "Tam ofis paketi, Thunderbird (Mail), GIMP (Fotoğraf), Inkscape (Vektörel) ve OBS Studio kurar.";
++    QString desc = "LibreOffice (Temel): Word(Writer), Excel(Calc) ve PowerPoint(Impress).";
++    if (enumVal == LibreOfficeFull) desc = "LibreOffice Tam Sürüm: PDF okuyucu, veritabanı, form, draw vb. programlar.";
++    else if (enumVal == OnlyOffice) desc = "OnlyOffice Dekstop Editors, MS Office dökümanlarıyla yüksek uyumluluk.";
++    else if (enumVal == WPSOffice) desc = "WPS Office, Çin yapımı ancak modern arayüzlü ve MS Office uyumlu bir ofis seti. (Deb/RPM üzerinden kurulur)";
+     
+     if (currentLang == EN) {
+-        desc = "Installs Word (Writer), Excel (Calc), and PowerPoint (Impress).";
+-        if (enumVal == Medium) desc = "Installs the full LibreOffice suite including PDF and form programs.";
+-        else if (enumVal == Advanced) desc = "Full office suite, Thunderbird (Mail), GIMP (Photo), Inkscape (Vector), and OBS Studio.";
++        desc = "LibreOffice (Basic): Installs Writer (Word), Calc (Excel), Impress (PowerPoint).";
++        if (enumVal == LibreOfficeFull) desc = "LibreOffice Full Suite: includes PDF, DB, Draw, Math packages.";
++        else if (enumVal == OnlyOffice) desc = "OnlyOffice Desktop Editors with ultra-high MS Office compatibility.";
++        else if (enumVal == WPSOffice) desc = "WPS Office, high MS Office compatibility and modern ribbon UI.";
+     } else if (currentLang == ES) {
+-        desc = "Instala Word (Writer), Excel (Calc) y PowerPoint (Impress).";
+-        if (enumVal == Medium) desc = "Instala la suite completa LibreOffice incluyendo programas de PDF y formularios.";
+-        else if (enumVal == Advanced) desc = "Suite de oficina completa, Thunderbird (Correo), GIMP (Foto), Inkscape (Vector) y OBS Studio.";
++        desc = "LibreOffice (Básico): Instala Writer(Word), Calc(Excel) e Impress(PowerPoint).";
++        if (enumVal == LibreOfficeFull) desc = "LibreOffice Completo: Incluye PDF, BD, Draw y herramientas de matemáticas.";
++        else if (enumVal == OnlyOffice) desc = "Editores OnlyOffice Desktop, altísima compatibilidad con MS Office.";
++        else if (enumVal == WPSOffice) desc = "WPS Office, alta compatibilidad MS Office y una interfaz moderna.";
+     }
+     
+     officeDescLabel->setText(desc);
+@@ -421,6 +444,11 @@
+         backFromAppStoreBtn->setText("⬅ Geri");
+         backFromOfficeBtn->setText("⬅ Geri");
++        
++        toggleLogBtn->setText(logConsole->isVisible() ? "Gizle ⬆" : "Logları Göster ⬇");
++        toggleGameLogBtn->setText(gameLogConsole->isVisible() ? "Gizle ⬆" : "Logları Göster ⬇");
++        toggleOfficeLogBtn->setText(officeLogConsole->isVisible() ? "Gizle ⬆" : "Logları Göster ⬇");
++
+         versionLabel->setText("Mevcut Sürüm: 0.1.0");
+         updateButton->setText("Sistemi Güncelle");
+         
+@@ -459,9 +487,10 @@
+         officeStatusLabel->setText("Seçilen Paketi İndir");
+         
+-        officeLevelComboBox->setItemText(0, "Basit (Sadece Temel)");
+-        officeLevelComboBox->setItemText(1, "Orta (Tam Ofis)");
+-        officeLevelComboBox->setItemText(2, "Gelişmiş (Tasarım Dahil)");
++        officeLevelComboBox->setItemText(0, "LibreOffice (Basit)");
++        officeLevelComboBox->setItemText(1, "LibreOffice (Tam Kapsamlı)");
++        officeLevelComboBox->setItemText(2, "OnlyOffice");
++        officeLevelComboBox->setItemText(3, "WPS Office");
+ 
+     } else if (isEs) {
+         themeToggleBtn->setText(currentTheme == Dark ? "🌙 Oscuro" : "☀️ Claro");
+@@ -470,6 +499,11 @@
+         backFromGameBtn->setText("⬅ Volver");
+         backFromAppStoreBtn->setText("⬅ Volver");
+         backFromOfficeBtn->setText("⬅ Volver");
++        
++        toggleLogBtn->setText(logConsole->isVisible() ? "Ocultar ⬆" : "Mostrar Registros ⬇");
++        toggleGameLogBtn->setText(gameLogConsole->isVisible() ? "Ocultar ⬆" : "Mostrar Registros ⬇");
++        toggleOfficeLogBtn->setText(officeLogConsole->isVisible() ? "Ocultar ⬆" : "Mostrar Registros ⬇");
++
+         versionLabel->setText("Versión Actual: 0.1.0");
+         updateButton->setText("Actualizar Sistema");
+         
+@@ -508,9 +542,10 @@
+         officeStatusLabel->setText("Descargar Paquete");
+         
+-        officeLevelComboBox->setItemText(0, "Básico (Sólo el Básico)");
+-        officeLevelComboBox->setItemText(1, "Medio (Oficina Completa)");
+-        officeLevelComboBox->setItemText(2, "Avanzado (Incl. Diseño)");
++        officeLevelComboBox->setItemText(0, "LibreOffice (Básico)");
++        officeLevelComboBox->setItemText(1, "LibreOffice (Completo)");
++        officeLevelComboBox->setItemText(2, "OnlyOffice");
++        officeLevelComboBox->setItemText(3, "WPS Office");
+ 
+     } else {
+         themeToggleBtn->setText(currentTheme == Dark ? "🌙 Dark" : "☀️ Light");
+@@ -519,6 +554,11 @@
+         backFromGameBtn->setText("⬅ Back");
+         backFromAppStoreBtn->setText("⬅ Back");
+         backFromOfficeBtn->setText("⬅ Back");
++        
++        toggleLogBtn->setText(logConsole->isVisible() ? "Hide ⬆" : "Show Logs ⬇");
++        toggleGameLogBtn->setText(gameLogConsole->isVisible() ? "Hide ⬆" : "Show Logs ⬇");
++        toggleOfficeLogBtn->setText(officeLogConsole->isVisible() ? "Hide ⬆" : "Show Logs ⬇");
++
+         versionLabel->setText("Current Version: 0.1.0");
+         updateButton->setText("Update System");
+         
+@@ -557,9 +597,10 @@
+         officeStatusLabel->setText("Download Selected");
+         
+-        officeLevelComboBox->setItemText(0, "LibreOffice (Basic)");
+-        officeLevelComboBox->setItemText(1, "LibreOffice (Full)");
+-        officeLevelComboBox->setItemText(2, "OnlyOffice");
++        officeLevelComboBox->setItemText(0, "LibreOffice (Basic)");
++        officeLevelComboBox->setItemText(1, "LibreOffice (Full)");
++        officeLevelComboBox->setItemText(2, "OnlyOffice");
++        officeLevelComboBox->setItemText(3, "WPS Office");
+     }
+ 
+-    roAsdGitBtn->setText("📦\n\nro-asd GitHub");
+-    roAssistGitBtn->setText("🚀\n\nro-Assist GitHub");
++    roAsdGitHubBtn->setText("📦\n\nro-asd GitHub");
++    roAssistGitHubBtn->setText("🚀\n\nro-Assist GitHub");
+ 
+     onOfficeLevelChanged(officeLevelComboBox->currentIndex());
+@@ -700,6 +741,27 @@
+     QMessageBox::information(this, currentLang == TR ? "Mağaza Sürümü" : (currentLang == ES ? "Versión de la Tienda" : "Store Version"), 
+                              currentLang == TR ? "Bu sistem yakında eklenecektir!" : (currentLang == ES ? "¡Integración próximamente!" : "Integration coming soon!"));
+ }
++
++void MainWindow::toggleUpdateLogs()
++{
++    logConsole->setVisible(!logConsole->isVisible());
++    updateUiTextAndImages();
++}
++
++void MainWindow::toggleGameLogs()
++{
++    gameLogConsole->setVisible(!gameLogConsole->isVisible());
++    updateUiTextAndImages();
++}
++
++void MainWindow::toggleOfficeLogs()
++{
++    officeLogConsole->setVisible(!officeLogConsole->isVisible());
++    updateUiTextAndImages();
++}
+ 
+ void MainWindow::startGamePackageInstall()
+ {
+@@ -777,15 +839,18 @@
+     QStringList args;
+     args << "-S" << "dnf" << "install" << "-y";
+     
+-    if (enumVal == Basic) {
++    if (enumVal == LibreOfficeBasic) {
+         args << "libreoffice-writer" << "libreoffice-calc" << "libreoffice-impress";
+-    } else if (enumVal == Medium) {
++    } else if (enumVal == LibreOfficeFull) {
+         args << "libreoffice" << "evince";
+-    } else { // Advanced
+-        args << "libreoffice" << "evince" << "thunderbird" << "gimp" << "inkscape" << "obs-studio";
++    } else if (enumVal == OnlyOffice) {
++        args.clear();
++        args << "-S" << "sh" << "-c" << "if command -v flatpak > /dev/null; then flatpak install flathub org.onlyoffice.desktopeditors -y; else echo 'Flatpak must be installed'; exit 1; fi";
++    } else if (enumVal == WPSOffice) {
++        args.clear();
++        args << "-S" << "sh" << "-c" << "if command -v flatpak > /dev/null; then flatpak install flathub com.wps.Office -y; else echo 'Flatpak must be installed'; exit 1; fi";
+     }
+ 
+     updateProcess->start("sudo", args);
+@@ -936,11 +1001,13 @@
+             gameProgressBar->hide();
+             gameProgressBar->setValue(0);
+             gameStatusLabel->setText(t);
++            if (!gameLogConsole->isVisible()) toggleGameLogs();
+             gameInstallButton->setEnabled(true);
+         } else if (actIdx == 4) {
+             officeProgressBar->hide();
+             officeProgressBar->setValue(0);
+             officeStatusLabel->setText(t);
++            if (!officeLogConsole->isVisible()) toggleOfficeLogs();
+             officeInstallButton->setEnabled(true);
+             officeLevelComboBox->setEnabled(true);
+         } else {
+             progressBar->hide();
+             progressBar->setValue(0);
+             statusLabel->setText(t);
++            if (!logConsole->isVisible()) toggleUpdateLogs();
+             updateButton->setEnabled(true);
+         }
+         
+@@ -980,6 +1047,7 @@
+             if (!isTerminatingIntentionally) {
+                 gameProgressBar->hide();
+                 gameStatusLabel->setText(currentLang == TR ? "İşlem Başarısız!" : (currentLang == ES ? "¡Proceso fallido!" : "Process Failed!"));
++                if (!gameLogConsole->isVisible()) toggleGameLogs();
+                 appendLog(currentLang == TR ? "İşlem sırasında hata oluştu." : (currentLang == ES ? "Ocurrió un error en el proceso." : "Error occurred in process."), "#ff4444");
+             }
+         }
+@@ -996,6 +1064,7 @@
+             if (!isTerminatingIntentionally) {
+                 officeProgressBar->hide();
+                 officeStatusLabel->setText(currentLang == TR ? "İşlem Başarısız!" : (currentLang == ES ? "¡Proceso fallido!" : "Process Failed!"));
++                if (!officeLogConsole->isVisible()) toggleOfficeLogs();
+                 appendLog(currentLang == TR ? "İşlem sırasında hata oluştu." : "Error occurred in process.", "#ff4444");
+             }
+         }
+@@ -1012,6 +1081,7 @@
+             if (!isTerminatingIntentionally) {
+                 progressBar->hide();
+                 statusLabel->setText(currentLang == TR ? "İşlem Başarısız!" : (currentLang == ES ? "¡Proceso fallido!" : "Process Failed!"));
++                if (!logConsole->isVisible()) toggleUpdateLogs();
+                 appendLog(currentLang == TR ? "İşlem sırasında hata oluştu." : (currentLang == ES ? "Ocurrió un error durante el proceso." : "Error occurred during process."), "#ff4444");
+             }
+         }
+@@ -1028,15 +1098,18 @@
+         
+     QMessageBox::critical(this, currentLang == TR ? "Kritik Hata" : (currentLang == ES ? "Error crítico" : "Critical Error"), errorMsg);
+     
+     int actIdx = mainStack->currentIndex();
+     if (actIdx == 2) {
+         gameProgressBar->hide();
+         gameInstallButton->setEnabled(true);
++        if (!gameLogConsole->isVisible()) toggleGameLogs();
+         gameStatusLabel->setText((currentLang == TR ? "Kritik Hata: " : (currentLang == ES ? "Error crítico: " : "Critical Error: ")) + errorMsg);
+     } else if (actIdx == 4) {
+         officeProgressBar->hide();
+         officeInstallButton->setEnabled(true);
++        if (!officeLogConsole->isVisible()) toggleOfficeLogs();
+         officeLevelComboBox->setEnabled(true);
+         officeStatusLabel->setText((currentLang == TR ? "Kritik Hata: " : (currentLang == ES ? "Error crítico: " : "Critical Error: ")) + errorMsg);
+     } else {
+         progressBar->hide();
++        if (!logConsole->isVisible()) toggleUpdateLogs();
+         updateButton->setEnabled(true);
+         statusLabel->setText((currentLang == TR ? "Kritik Hata: " : (currentLang == ES ? "Error crítico: " : "Critical Error: ")) + errorMsg);
+     }

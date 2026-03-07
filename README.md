@@ -16,6 +16,5 @@ ro-Assist, Fedora Linux için geliştirilmiş, C++ ve Qt6 tabanlı modern bir si
 
 **🇬🇧 English:**
 ro-Assist is a modern system management assistant for Fedora Linux built with C++ and Qt6. It communicates directly with the `dnf` package manager to perform system updates securely with a real-time progress bar.
-
-**Developer:** Ebubekir Bulut  
+  
 **Year:** 2026
