@@ -616,8 +616,8 @@ void MainWindow::updateUiTextAndImages()
         appStoreTitleLabel->setText("Özel Uygulama Mağazamızı Keşfedin");
         appStoreOpenAppBtn->setText("Mağazayı / Uygulamayı Aç");
         slide4Title->setText("Biz Kimiz? Topluluğumuzu Keşfedin");
-        slide4Desc->setText("Bozok Topluluğu olarak Açık Kaynak için çalışıyoruz.");
-        bozokBtn->setText("Topluluğa Katıl");
+        slide4Desc->setText("Yozgat Bozok Üniversitesi Açık Kaynak Yazılım Geliştirme Kulübü olarak ro-ASD projesi için çalışıyoruz.");
+        bozokBtn->setText("Kulübe Katıl");
         slide5Title->setText("Oyun Paketi");
         slide5Desc->setText("Steam ve Lutris kurulum sayfasına gidin.");
         gamePackageSlideBtn->setText("Oyun Ekranına Geç");
@@ -654,8 +654,8 @@ void MainWindow::updateUiTextAndImages()
         appStoreTitleLabel->setText("Descubre Nuestra Tienda Especial");
         appStoreOpenAppBtn->setText("Abrir Aplicación de la Tienda");
         slide4Title->setText("¿Quiénes somos? Nuestra comunidad");
-        slide4Desc->setText("Como la comunidad Bozok, trabajamos por el Código Abierto.");
-        bozokBtn->setText("Únete a la Comunidad");
+        slide4Desc->setText("Como el Club de Desarrollo de Código Abierto de la Universidad de Yozgat Bozok, trabajamos para el proyecto ro-ASD.");
+        bozokBtn->setText("Únete al Club");
         slide5Title->setText("Paquete de Juegos");
         slide5Desc->setText("Vaya a la página de instalación de Steam y Lutris.");
         gamePackageSlideBtn->setText("Ir a Pantalla de Juegos");
@@ -692,8 +692,8 @@ void MainWindow::updateUiTextAndImages()
         appStoreTitleLabel->setText("Explore Our Custom App Store");
         appStoreOpenAppBtn->setText("Open App / Store");
         slide4Title->setText("Who Are We? Discover Our Community");
-        slide4Desc->setText("As the Bozok Community, we work for Open Source.");
-        bozokBtn->setText("Join Community");
+        slide4Desc->setText("As Yozgat Bozok University Open Source Software Development Club, we work for the ro-ASD project.");
+        bozokBtn->setText("Join the Club");
         slide5Title->setText("Game Package");
         slide5Desc->setText("Go to the Steam and Lutris installation page.");
         gamePackageSlideBtn->setText("Open Game Screen");
@@ -849,10 +849,10 @@ void MainWindow::onNetworkConnectedChanged(bool isConnected)
     networkStatusLabel->setVisible(!isNetworkConnected);
 }
 
-void MainWindow::openWebsite() { QDesktopServices::openUrl(QUrl("https://www.example.com")); }
-void MainWindow::openRoAsdGitHub() { QDesktopServices::openUrl(QUrl("https://github.com/example/ro-asd")); }
-void MainWindow::openRoAssistGitHub() { QDesktopServices::openUrl(QUrl("https://github.com/example/ro-Assist")); }
-void MainWindow::openBozokCommunity() { QDesktopServices::openUrl(QUrl("https://github.com/Bozok-Toplulugu")); }
+void MainWindow::openWebsite() { QDesktopServices::openUrl(QUrl("https://github.com/Project-Ro-ASD")); }
+void MainWindow::openRoAsdGitHub() { QDesktopServices::openUrl(QUrl("https://github.com/Project-Ro-ASD/ro-asd")); }
+void MainWindow::openRoAssistGitHub() { QDesktopServices::openUrl(QUrl("https://github.com/Project-Ro-ASD/ro-Assist")); }
+void MainWindow::openBozokCommunity() { QDesktopServices::openUrl(QUrl("https://github.com/Project-Ro-ASD")); }
 void MainWindow::showAboutDialog() { QMessageBox::about(this, "Hakkında", "Geliştirici: Ebubekir Bulut\nYıl: 2026"); }
 
 void MainWindow::dummyAppStoreAction()

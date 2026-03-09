@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Fedora Linux Sistem Asistanı
 
 License:        GPLv3+
-URL:            https://github.com/example/ro-Assist
+URL:            https://github.com/Project-Ro-ASD/ro-Assist
 Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  cmake
