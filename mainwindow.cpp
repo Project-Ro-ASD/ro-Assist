@@ -13,6 +13,7 @@
 #include <QLocale>
 #include <QStyleHints>
 #include <QScrollBar>
+#include <QPalette>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), updateProcess(new QProcess(this)), checkUpdateProcess(new QProcess(this)),
@@ -83,9 +84,18 @@ void MainWindow::detectSystemLanguageAndTheme()
     else currentLang = EN;
 
     currentTheme = Light; 
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     if (const QStyleHints *hints = QGuiApplication::styleHints()) {
         if (hints->colorScheme() == Qt::ColorScheme::Dark) currentTheme = Dark;
     }
+#else
+    // Fallback for older Qt versions (Qt < 6.5)
+    if (QGuiApplication::palette().color(QPalette::WindowText).lightness() > 
+        QGuiApplication::palette().color(QPalette::Window).lightness()) {
+        currentTheme = Dark;
+    }
+#endif
 }
 
 void MainWindow::setupUi()
