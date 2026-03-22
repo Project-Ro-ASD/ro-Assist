@@ -1,0 +1,22 @@
+build/
+*.user
+.qtc_clf/
+ro-assist
+*.o
+moc_*.cpp
+*.orig
+*.patch
+*.swp
+*.swo
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+Makefile
+
+# Packaging artifacts
+*.rpm
+*.tar.gz
+_CPack_Packages/
