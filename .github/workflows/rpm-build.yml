@@ -1,23 +1,20 @@
-name: Fedora RPM Otomatik Uretim
-on:
-  push:
-    branches: [ main ]
+name: Fedora RPM Fabrikasi
+on: [push]
 jobs:
   build-rpm:
     runs-on: ubuntu-latest
     container: fedora:latest
     steps:
-      - name: Kodlari Cek
-        uses: actions/checkout@v4
-      - name: Fedora Gerekli Kutuphaneleri Kur
+      - uses: actions/checkout@v4
+      - name: Gerekli Kutuphaneleri Kur
         run: dnf install -y gcc-c++ cmake rpm-build qt6-qtbase-devel
-      - name: C++ Projesini Derle ve CPack ile Paketle
+      - name: Derle ve Paketle
         run: |
           mkdir build && cd build
           cmake ..
           make
           cpack -G RPM
-      - name: Olusan RPM Paketini Cikti Olarak Ver
+      - name: RPM Paketini Cikti Olarak Ver
         uses: actions/upload-artifact@v4
         with:
           name: ro-assist-fedora-rpm
