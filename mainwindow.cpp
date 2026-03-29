@@ -6,6 +6,7 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QMessageBox>
+#include <QDialog>
 #include <QInputDialog>
 #include <QDir>
 #include <QRegularExpression>
@@ -102,10 +103,12 @@ void MainWindow::setupUi()
     QWidget *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
-    mainLayout->setContentsMargins(15, 15, 15, 15);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
 
     // TOP BAR
-    QHBoxLayout *topLayout = new QHBoxLayout();
+    QWidget *topBarWidget = new QWidget(this);
+    QHBoxLayout *topLayout = new QHBoxLayout(topBarWidget);
+    topLayout->setContentsMargins(20, 20, 20, 10);
     networkStatusLabel = new QLabel(this);
     networkStatusLabel->setStyleSheet("font-weight: bold; color: #ffcc00; font-size: 14px;");
     networkStatusLabel->setVisible(!isNetworkConnected);
@@ -114,23 +117,27 @@ void MainWindow::setupUi()
     topLayout->addStretch();
     themeToggleBtn = new QPushButton(this);
     
-    langComboBox = new QComboBox(this);
-    langComboBox->setCursor(Qt::PointingHandCursor);
-    langComboBox->addItem("🇹🇷 Türkçe", QVariant::fromValue((int)TR));
-    langComboBox->addItem("🇬🇧 English", QVariant::fromValue((int)EN));
-    langComboBox->addItem("🇪🇸 Español", QVariant::fromValue((int)ES));
+    langBtn = new QPushButton(this);
+    langBtn->setCursor(Qt::PointingHandCursor);
+    langBtn->setFixedSize(130, 42);
     
-    int defaultIdx = (currentLang == TR) ? 0 : ((currentLang == ES) ? 2 : 1);
-    langComboBox->setCurrentIndex(defaultIdx);
+    langMenu = new QMenu(langBtn);
+    QAction *actTR = langMenu->addAction("🇹🇷 Türkçe");
+    actTR->setData(QVariant::fromValue((int)TR));
+    QAction *actEN = langMenu->addAction("🇬🇧 English");
+    actEN->setData(QVariant::fromValue((int)EN));
+    QAction *actES = langMenu->addAction("🇪🇸 Español");
+    actES->setData(QVariant::fromValue((int)ES));
+    
+    langBtn->setMenu(langMenu);
 
-    themeToggleBtn->setMinimumSize(100, 40);
-    langComboBox->setMinimumSize(120, 40);
+    themeToggleBtn->setFixedSize(110, 42);
     connect(themeToggleBtn, &QPushButton::clicked, this, &MainWindow::toggleTheme);
-    connect(langComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::changeLanguage);
+    connect(langMenu, &QMenu::triggered, this, &MainWindow::changeLanguageAction);
 
     topLayout->addWidget(themeToggleBtn);
-    topLayout->addWidget(langComboBox);
-    mainLayout->addLayout(topLayout);
+    topLayout->addWidget(langBtn);
+    mainLayout->addWidget(topBarWidget);
 
     mainStack = new QStackedWidget(this);
 
@@ -148,18 +155,16 @@ void MainWindow::setupUi()
     connect(nextSlideBtn, &QPushButton::clicked, this, &MainWindow::nextSlide);
     carousel->setObjectName("panelWidget");
     createCarouselSlides();
-    carouselLayout->addStretch(2);
     carouselLayout->addWidget(prevSlideBtn, 0, Qt::AlignCenter);
-    carouselLayout->addSpacing(20);
-    carouselLayout->addWidget(carousel, 6);
-    carouselLayout->addSpacing(20);
+    carouselLayout->addSpacing(10);
+    carouselLayout->addWidget(carousel, 1);
+    carouselLayout->addSpacing(10);
     carouselLayout->addWidget(nextSlideBtn, 0, Qt::AlignCenter);
-    carouselLayout->addStretch(2);
     
     // 2. UPDATE VIEW
     updateViewWidget = new QWidget(this);
     QVBoxLayout *updateLayout = new QVBoxLayout(updateViewWidget);
-    updateLayout->setContentsMargins(0, 0, 0, 0);
+    updateLayout->setContentsMargins(20, 0, 20, 0);
     backToCarouselBtn = new QPushButton(this);
     backToCarouselBtn->setObjectName("backButton");
     backToCarouselBtn->setMinimumSize(120, 40);
@@ -226,7 +231,7 @@ void MainWindow::setupUi()
     // 3. LIBRARY PACKAGE VIEW
     libraryViewWidget = new QWidget(this);
     QVBoxLayout *libraryLayout = new QVBoxLayout(libraryViewWidget);
-    libraryLayout->setContentsMargins(0, 0, 0, 0);
+    libraryLayout->setContentsMargins(20, 0, 20, 0);
 
     backFromLibraryBtn = new QPushButton(this);
     backFromLibraryBtn->setObjectName("backButton");
@@ -290,7 +295,7 @@ void MainWindow::setupUi()
     // 4. CUSTOM APP STORE VIEW
     appStoreViewWidget = new QWidget(this);
     QVBoxLayout *storeLayout = new QVBoxLayout(appStoreViewWidget);
-    storeLayout->setContentsMargins(0, 0, 0, 0);
+    storeLayout->setContentsMargins(20, 0, 20, 0);
 
     backFromAppStoreBtn = new QPushButton(this);
     backFromAppStoreBtn->setObjectName("backButton");
@@ -338,16 +343,19 @@ void MainWindow::setupUi()
     mainLayout->addWidget(mainStack, 1);
 
     // BOTTOM BAR
+    QWidget *bottomBarWidget = new QWidget(this);
+    QHBoxLayout *aboutLayout = new QHBoxLayout(bottomBarWidget);
+    aboutLayout->setContentsMargins(20, 10, 20, 20);
+    
     QPushButton *aboutBtn = new QPushButton("ℹ️", this);
     aboutBtn->setObjectName("aboutButton");
     aboutBtn->setFixedSize(50, 50);
     aboutBtn->setCursor(Qt::PointingHandCursor);
     connect(aboutBtn, &QPushButton::clicked, this, &MainWindow::showAboutDialog);
     
-    QHBoxLayout *aboutLayout = new QHBoxLayout();
     aboutLayout->addWidget(aboutBtn);
     aboutLayout->addStretch();
-    mainLayout->addLayout(aboutLayout);
+    mainLayout->addWidget(bottomBarWidget);
 }
 
 void MainWindow::createCarouselSlides()
@@ -480,6 +488,9 @@ void MainWindow::createCarouselSlides()
 
 void MainWindow::updateUiTextAndImages()
 {
+    if (currentLang == TR) langBtn->setText("🇹🇷 Türkçe");
+    else if (currentLang == ES) langBtn->setText("🇪🇸 Español");
+    else langBtn->setText("🇬🇧 English");
     bool isTr = (currentLang == TR);
     bool isEs = (currentLang == ES);
     
@@ -591,7 +602,7 @@ void MainWindow::setupStyle()
 {
     // Modern, accessible, eye-pleasing color palette
     QString baseBg = currentTheme == Dark ? "#18181b" : "#f8fafc";
-    QString panelBg = currentTheme == Dark ? "#27272a" : "#ffffff";
+    QString panelBg = baseBg;
     QString textCol = currentTheme == Dark ? "#f4f4f5" : "#0f172a";
     QString subTextCol = currentTheme == Dark ? "#a1a1aa" : "#64748b";
     QString borderCol = currentTheme == Dark ? "#3f3f46" : "#e2e8f0";
@@ -606,9 +617,8 @@ void MainWindow::setupStyle()
         * { font-family: 'Segoe UI', 'Inter', 'Roboto', sans-serif; outline: none; }
         QMainWindow { background-color: %1; }
         QWidget#panelWidget { 
-            background-color: %2; 
-            border-radius: 16px; 
-            border: 1px solid %5; 
+            background-color: transparent; 
+            border: none; 
         }
         QLabel { color: %3; }
         QLabel#versionLabel { font-size: 14px; font-weight: 600; color: %4; }
@@ -633,17 +643,12 @@ void MainWindow::setupStyle()
         }
         QPushButton:hover { background-color: %6; border-color: %7; }
         
-        QComboBox {
-            background-color: %2; border: 1px solid %5;
-            border-radius: 10px; padding: 4px 10px 4px 15px; color: %3; font-size: 13px; font-weight: bold;
+        QMenu {
+            background-color: %2; color: %3; border: 1px solid %5;
+            border-radius: 8px; padding: 4px; font-size: 14px; font-weight: 600; 
         }
-        QComboBox:hover { background-color: %6; border-color: %7; }
-        QComboBox::drop-down { border: none; width: 0px; }
-        QComboBox QAbstractItemView { 
-            background-color: %2; color: %3; border: 1px solid %7; 
-            border-radius: 6px; selection-background-color: %7; selection-color: white; 
-            outline: none; padding: 5px;
-        }
+        QMenu::item { padding: 8px 24px; border-radius: 6px; }
+        QMenu::item:selected { background-color: %7; color: white; }
         
         QPushButton#navButton { background-color: transparent; border: none; color: %4; font-size: 36px; font-weight: bold; }
         QPushButton#navButton:hover { color: %7; }
@@ -724,9 +729,10 @@ void MainWindow::showCarouselScreen()
     }
 }
 
-void MainWindow::changeLanguage(int index)
+void MainWindow::changeLanguageAction(QAction *action)
 {
-    currentLang = static_cast<Language>(langComboBox->itemData(index).toInt());
+    if (!action) return;
+    currentLang = static_cast<Language>(action->data().toInt());
     updateUiTextAndImages();
 }
 
@@ -760,15 +766,52 @@ void MainWindow::openRoAsdGitHub() { QDesktopServices::openUrl(QUrl("https://git
 void MainWindow::openRoAssistGitHub() { QDesktopServices::openUrl(QUrl("https://github.com/Project-Ro-ASD/ro-Assist")); }
 void MainWindow::openBozokCommunity() { QDesktopServices::openUrl(QUrl("https://github.com/Project-Ro-ASD")); }
 void MainWindow::showAboutDialog() {
-    QMessageBox msgBox(this);
-    msgBox.setWindowTitle(currentLang == TR ? "Hakkında" : (currentLang == ES ? "Acerca de" : "About"));
-    msgBox.setTextFormat(Qt::RichText);
-    QString title = currentLang == TR ? "Açıklama" : "Description";
-    QString desc = currentLang == TR ? "Yozgat Bozok Üniversitesi Açık Kaynak Yazılım Geliştirme Kulübü ro-ASD projesi sistem yönetim aracı." : "Yozgat Bozok University Open Source Software Development Club ro-ASD project system management tool.";
-    msgBox.setText(QString("<h2 style='color:%1;'>ro-Assist</h2><p><b>Geliştirici:</b> Ebubekir Bulut<br><b>Yıl:</b> 2026<br><b>%2:</b> %3</p>").arg(accentColor.name(), title, desc));
-    msgBox.setStandardButtons(QMessageBox::Ok);
-    msgBox.setStyleSheet("QLabel{min-width: 450px; min-height: 150px; font-size: 15px;} QPushButton{width: 80px; height: 35px;}");
-    msgBox.exec();
+    QDialog dialog(this);
+    dialog.setWindowTitle(currentLang == TR ? "Hakkında" : (currentLang == ES ? "Acerca de" : "About"));
+    dialog.setFixedSize(550, 400);
+    dialog.setStyleSheet(this->styleSheet() + QString(" QDialog { background-color: %1; border-radius: 16px; border: 1px solid %2; }")
+                        .arg(currentTheme == Dark ? "#27272a" : "#ffffff", currentTheme == Dark ? "#3f3f46" : "#e2e8f0"));
+    
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    layout->setContentsMargins(40, 40, 40, 40);
+    layout->setSpacing(25);
+    
+    QLabel *titleLabel = new QLabel("ro-Assist", &dialog);
+    titleLabel->setAlignment(Qt::AlignCenter);
+    titleLabel->setStyleSheet(QString("font-size: 42px; font-weight: 900; color: %1;").arg(accentColor.name()));
+    
+    QLabel *descLabel = new QLabel(&dialog);
+    descLabel->setWordWrap(true);
+    descLabel->setAlignment(Qt::AlignCenter);
+    QString desc = currentLang == TR ? "Yozgat Bozok Üniversitesi Açık Kaynak Yazılım Geliştirme Kulübü ro-ASD projesi sistem yönetim aracı." 
+                                     : (currentLang == ES ? "Herramienta de gestión del sistema del proyecto ro-ASD del Club de Desarrollo de Software de Código Abierto de la Universidad Yozgat Bozok." 
+                                                          : "Yozgat Bozok University Open Source Software Development Club ro-ASD project system management tool.");
+    descLabel->setText(desc);
+    descLabel->setStyleSheet("font-size: 16px; color: " + QString(currentTheme == Dark ? "#e4e4e7" : "#3f3f46") + ";");
+    
+    QLabel *infoLabel = new QLabel(&dialog);
+    infoLabel->setAlignment(Qt::AlignCenter);
+    infoLabel->setText(QString("<span style='font-size: 15px;'><b>%1:</b> Ebubekir Bulut<br><br><b>%2:</b> 2026</span>")
+        .arg(currentLang == TR ? "Geliştirici" : (currentLang == ES ? "Desarrollador" : "Developer"))
+        .arg(currentLang == TR ? "Yıl" : (currentLang == ES ? "Año" : "Year")));
+    infoLabel->setStyleSheet("color: " + QString(currentTheme == Dark ? "#a1a1aa" : "#71717a") + ";");
+
+    QPushButton *okBtn = new QPushButton(currentLang == TR ? "Kapat" : (currentLang == ES ? "Cerrar" : "Close"), &dialog);
+    okBtn->setObjectName("actionButton");
+    okBtn->setFixedSize(200, 50);
+    okBtn->setCursor(Qt::PointingHandCursor);
+    QObject::connect(okBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    layout->addStretch();
+    layout->addWidget(titleLabel);
+    layout->addSpacing(10);
+    layout->addWidget(descLabel);
+    layout->addSpacing(20);
+    layout->addWidget(infoLabel);
+    layout->addStretch();
+    layout->addWidget(okBtn, 0, Qt::AlignHCenter);
+
+    dialog.exec();
 }
 
 void MainWindow::dummyAppStoreAction()

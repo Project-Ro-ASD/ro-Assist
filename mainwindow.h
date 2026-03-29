@@ -11,7 +11,9 @@
 #include <QTimer>
 #include <QTextEdit>
 #include <QNetworkInformation>
-#include <QComboBox>
+#include <QMenu>
+#include <QAction>
+#include <QTimer>
 #include <QColor>
 
 class MainWindow : public QMainWindow
@@ -48,7 +50,7 @@ private slots:
     void showAppStoreScreen();
     void showCarouselScreen();
 
-    void changeLanguage(int index);
+    void changeLanguageAction(QAction *action);
     void toggleTheme();
     void onNetworkConnectedChanged(bool isConnected);
     
@@ -101,7 +103,8 @@ private:
 
     QLabel *networkStatusLabel;
     
-    QComboBox *langComboBox;
+    QPushButton *langBtn;
+    QMenu *langMenu;
     QPushButton *themeToggleBtn;
     QPushButton *prevSlideBtn;
     QPushButton *nextSlideBtn;
