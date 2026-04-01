@@ -115,6 +115,7 @@ private:
     // Slide specific elements
     QLabel *slide1Title;
     QLabel *slide1Desc;
+    QPushButton *updateSlideBtn;
     
     QLabel *slide2Title;
     QToolButton *websiteBtn;
