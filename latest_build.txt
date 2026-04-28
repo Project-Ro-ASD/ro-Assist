@@ -1,0 +1,3 @@
+[  0%] Built target ro-assist_autogen_timestamp_deps
+[ 12%] Built target ro-assist_autogen
+[100%] Built target ro-assist

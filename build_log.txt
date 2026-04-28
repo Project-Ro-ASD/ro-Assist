@@ -1,0 +1,6 @@
+[  0%] Built target ro-assist_autogen_timestamp_deps
+[ 12%] Automatic MOC for target ro-assist
+[ 12%] Built target ro-assist_autogen
+[ 25%] Building CXX object CMakeFiles/ro-assist.dir/mainwindow.cpp.o
+[ 37%] Linking CXX executable ro-assist
+[100%] Built target ro-assist
