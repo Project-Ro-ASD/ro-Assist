@@ -2,18 +2,10 @@ name: Build RPM Packages
 
 on:
   workflow_dispatch:
-    inputs:
-      release_tag:
-        description: >-
-          Existing release tag to upload RPM assets to (example: v0.1.2)
-        required: false
-        type: string
   push:
     branches:
       - main
       - master
-    tags:
-      - "v*"
 
 permissions:
   contents: read
@@ -132,62 +124,3 @@ jobs:
           rpm_path="$(find artifact-rpm -maxdepth 1 -type f -name '*.rpm' ! -name '*.src.rpm' | head -n 1)"
           test -n "$rpm_path"
           packaging/scripts/validate-fedora-rpm.sh "$rpm_path"
-
-  publish-release:
-    name: publish-release-assets
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release_tag != ''
-    needs: validate-rpm
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download x64 RPM artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: ro-assist-x64
-          path: release-assets/x64
-
-      - name: Download arm64 RPM artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: ro-assist-arm64
-          path: release-assets/arm64
-
-      - name: Publish RPM assets to GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          tag_name="${GITHUB_REF_NAME}"
-          if [ -n "${{ github.event.inputs.release_tag }}" ]; then
-            tag_name="${{ github.event.inputs.release_tag }}"
-          fi
-          version="${tag_name#v}"
-
-          x64_rpm="$(find release-assets/x64 -maxdepth 1 -type f -name '*.rpm' ! -name '*.src.rpm' -print -quit)"
-          arm64_rpm="$(find release-assets/arm64 -maxdepth 1 -type f -name '*.rpm' ! -name '*.src.rpm' -print -quit)"
-          test -n "$x64_rpm"
-          test -n "$arm64_rpm"
-
-          # Keep the RPM's standard NVRA name inside the build artifacts, but
-          # publish predictable, architecture-specific names for end users.
-          cp "$x64_rpm" "release-assets/ro-assist-${version}-x86_64.rpm"
-          cp "$arm64_rpm" "release-assets/ro-assist-${version}-aarch64.rpm"
-
-          if ! gh release view "$tag_name" >/dev/null 2>&1; then
-            if git ls-remote --exit-code --tags "https://github.com/${GH_REPO}.git" "refs/tags/${tag_name}" >/dev/null 2>&1; then
-              gh release create "$tag_name" \
-                --title "$tag_name" \
-                --generate-notes
-            else
-              echo "::error::Tag '${tag_name}' does not exist in ${GH_REPO}, so a release cannot be created."
-              exit 1
-            fi
-          fi
-
-          gh release upload "$tag_name" \
-            "release-assets/ro-assist-${version}-x86_64.rpm" \
-            "release-assets/ro-assist-${version}-aarch64.rpm" \
-            --clobber
