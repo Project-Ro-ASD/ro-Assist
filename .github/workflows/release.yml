@@ -1,0 +1,280 @@
+name: Release
+
+"on":
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    name: Resolve Release Metadata
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Validate exact tag and version
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          PROJECT_VERSION="$(awk '/^project\(ro-assist VERSION / { print $3; exit }' CMakeLists.txt)"
+          SPEC_VERSION="$(awk '/^Version:/ { print $2; exit }' packaging/rpm/ro-assist.spec)"
+          METADATA_VERSION="$(sed -n 's/.*<release version="\([^"]*\)".*/\1/p' packaging/linux/io.github.project_ro_asd.ro_assist.metainfo.xml | head -n 1)"
+
+          [[ "${TAG}" == "v${VERSION}" ]]
+          [[ "${VERSION}" == "${PROJECT_VERSION}" ]]
+          [[ "${VERSION}" == "${SPEC_VERSION}" ]]
+          [[ "${VERSION}" == "${METADATA_VERSION}" ]]
+          [[ "$(git rev-parse HEAD)" == "${GITHUB_SHA}" ]]
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+
+  rpm:
+    name: Build Fedora 44 RPM (${{ matrix.rpm_arch }})
+    needs: metadata
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: fedora:44
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rpm_arch: x86_64
+            runner: ubuntu-24.04
+          - rpm_arch: aarch64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+            gcc-c++ git cmake ninja-build rpm-build \
+            desktop-file-utils appstream \
+            qt6-qtbase-devel qt6-qttools-devel
+
+      - name: Build and validate package
+        env:
+          VERSION: ${{ needs.metadata.outputs.version }}
+          RPM_ARCH: ${{ matrix.rpm_arch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --preset ci
+          cmake --build --preset ci
+          ctest --preset ci
+          desktop-file-validate packaging/linux/ro-assist.desktop
+          appstreamcli validate packaging/linux/io.github.project_ro_asd.ro_assist.metainfo.xml
+
+          TOPDIR="$HOME/rpmbuild"
+          mkdir -p "$TOPDIR"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS} release-rpms
+          STAGE_DIR="$(mktemp -d)"
+          mkdir -p "$STAGE_DIR/ro-assist-${VERSION}"
+          tar --exclude-vcs --exclude='./build' -cf - . | tar -C "$STAGE_DIR/ro-assist-${VERSION}" -xf -
+          tar -C "$STAGE_DIR" -czf "$TOPDIR/SOURCES/ro-assist-${VERSION}.tar.gz" "ro-assist-${VERSION}"
+          rm -rf "$STAGE_DIR"
+          cp packaging/rpm/ro-assist.spec "$TOPDIR/SPECS/"
+
+          rpmbuild -ba \
+            --define "_topdir $TOPDIR" \
+            --define "dist .fc44" \
+            "$TOPDIR/SPECS/ro-assist.spec"
+
+          BINARY_RPM="$(find "$TOPDIR/RPMS" -type f -name "ro-assist-*.${RPM_ARCH}.rpm" -print -quit)"
+          test -n "$BINARY_RPM"
+          [[ "$(rpm -qp --qf '%{NAME}' "$BINARY_RPM")" == "ro-assist" ]]
+          [[ "$(rpm -qp --qf '%{VERSION}' "$BINARY_RPM")" == "${VERSION}" ]]
+          [[ "$(rpm -qp --qf '%{ARCH}' "$BINARY_RPM")" == "${RPM_ARCH}" ]]
+          [[ "$(rpm -qp --qf '%{RELEASE}' "$BINARY_RPM")" == *.fc44 ]]
+
+          packaging/scripts/validate-fedora-rpm.sh "$BINARY_RPM"
+          cp "$BINARY_RPM" release-rpms/
+
+          if [[ "${RPM_ARCH}" == "x86_64" ]]; then
+            SRPM="$(find "$TOPDIR/SRPMS" -type f -name 'ro-assist-*.src.rpm' -print -quit)"
+            test -n "$SRPM"
+            [[ "$(rpm -qp --qf '%{VERSION}' "$SRPM")" == "${VERSION}" ]]
+            [[ "$(rpm -qp --qf '%{RELEASE}' "$SRPM")" == *.fc44 ]]
+            cp "$SRPM" release-rpms/
+          fi
+
+      - name: Upload RPM bundle part
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-rpms-${{ matrix.rpm_arch }}
+          path: release-rpms/*.rpm
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish V2 Contract Release
+    needs: [metadata, rpm]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.metadata.outputs.tag }}
+      VERSION: ${{ needs.metadata.outputs.version }}
+
+    steps:
+      - name: Checkout trusted workflow source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Download RPM bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: release-rpms-*
+          path: bundle
+          merge-multiple: true
+
+      - name: Install RPM query tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
+      - name: Validate exact RPM set
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t RPMS < <(find bundle -maxdepth 1 -type f -name '*.rpm' -printf '%f\n' | sort)
+          [[ "${#RPMS[@]}" -eq 3 ]]
+          [[ "$(printf '%s\n' "${RPMS[@]}" | grep -c '\.x86_64\.rpm$')" -eq 1 ]]
+          [[ "$(printf '%s\n' "${RPMS[@]}" | grep -c '\.aarch64\.rpm$')" -eq 1 ]]
+          [[ "$(printf '%s\n' "${RPMS[@]}" | grep -c '\.src\.rpm$')" -eq 1 ]]
+          ! find bundle -maxdepth 1 -type f -name '*.rpm' | grep -qE '/.*(fc4[0-3]|fc45).*\.rpm$'
+
+      - name: Create or recover draft release
+        id: draft
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXISTING="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate --jq ".[] | select(.tag_name == \"${TAG}\") | [.id,.draft,.target_commitish] | @tsv" | head -n1 || true)"
+          if [[ -n "$EXISTING" ]]; then
+            IFS=$'\t' read -r EXISTING_ID IS_DRAFT TARGET <<< "$EXISTING"
+            if [[ "$IS_DRAFT" != "true" ]]; then
+              echo "A published release already exists for ${TAG}; refusing reuse." >&2
+              exit 1
+            fi
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/${EXISTING_ID}"
+          fi
+
+          gh release create "$TAG" \
+            --draft \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --generate-notes
+
+          RELEASE_ID="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id" | head -n1)"
+          test -n "$RELEASE_ID"
+          echo "release_id=${RELEASE_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate strict checksums and component manifest
+        env:
+          RELEASE_ID: ${{ steps.draft.outputs.release_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd bundle
+          mapfile -t RPMS < <(find . -maxdepth 1 -type f -name '*.rpm' -printf '%f\n' | sort)
+          sha256sum "${RPMS[@]}" > SHA256SUMS
+
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+
+          root = pathlib.Path('.')
+          artifacts = []
+          query = '%{NAME}\t%{EPOCHNUM}\t%{VERSION}\t%{RELEASE}\t%{ARCH}\t%{SOURCERPM}\t%|SOURCEPACKAGE?{true}:{false}|'
+          for path in sorted(root.glob('*.rpm')):
+              values = subprocess.check_output(['rpm','-qp','--qf',query,str(path)], text=True).split('\t')
+              if len(values) != 7:
+                  raise SystemExit(f'Unexpected RPM header for {path}')
+              name, epoch, version, release, arch, source_rpm, is_source = values
+              if is_source == 'true':
+                  arch = 'src'
+                  source_rpm = None
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              artifacts.append({
+                  'filename': path.name,
+                  'name': name,
+                  'epoch': int(epoch or 0),
+                  'version': version,
+                  'release': release,
+                  'architecture': arch,
+                  'source_rpm': source_rpm,
+                  'producer_artifact_sha256': digest,
+              })
+
+          manifest = {
+              'schema_version': 1,
+              'component': 'ro-assist',
+              'source_repository': os.environ['GITHUB_REPOSITORY'],
+              'source_commit': os.environ['GITHUB_SHA'],
+              'release_tag': os.environ['TAG'],
+              'release_id': int(os.environ['RELEASE_ID']),
+              'workflow_run': int(os.environ['GITHUB_RUN_ID']),
+              'fedora_release': 44,
+              'artifacts': artifacts,
+              'provenance': {'provider': 'github', 'subject_digest': 'sha256'},
+              'attestation': {'provider': 'github', 'verification': 'gh attestation verify'},
+          }
+          pathlib.Path('component-artifact-manifest-v1.json').write_text(
+              json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          PY
+
+          sha256sum -c SHA256SUMS
+
+      - name: Attest exact release bundle
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: |
+            bundle/*.rpm
+            bundle/SHA256SUMS
+            bundle/component-artifact-manifest-v1.json
+
+      - name: Upload complete bundle to draft release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" \
+            bundle/*.rpm \
+            bundle/SHA256SUMS \
+            bundle/component-artifact-manifest-v1.json
+
+      - name: Verify draft assets and publish
+        env:
+          RELEASE_ID: ${{ steps.draft.outputs.release_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t EXPECTED < <(
+            { find bundle -maxdepth 1 -type f -name '*.rpm' -printf '%f\n'; printf '%s\n' SHA256SUMS component-artifact-manifest-v1.json; } | sort
+          )
+          mapfile -t ACTUAL < <(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate --jq '.[].name' | sort)
+          [[ "${#EXPECTED[@]}" -eq 5 ]]
+          diff -u <(printf '%s\n' "${EXPECTED[@]}") <(printf '%s\n' "${ACTUAL[@]}")
+
+          gh release edit "$TAG" --draft=false
