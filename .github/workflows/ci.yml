@@ -59,3 +59,16 @@ jobs:
 
       - name: Validate AppStream metadata
         run: appstreamcli validate packaging/linux/io.github.project_ro_asd.ro_assist.metainfo.xml
+
+  ro-app-gate:
+    name: ro-app-gate
+    if: ${{ always() }}
+    needs: [build-and-test]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Enforce final application gate
+        env:
+          BUILD_RESULT: ${{ needs.build-and-test.result }}
+        run: |
+          set -euo pipefail
+          [[ "${BUILD_RESULT}" == "success" ]]
