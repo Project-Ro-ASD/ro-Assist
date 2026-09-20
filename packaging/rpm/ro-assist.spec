@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           ro-assist
-Version:        0.2.3
+Version:        0.2.4
 Release:        1%{?dist}
 Summary:        First-run and maintenance center for Ro-ASD systems
 ExclusiveArch:  x86_64 aarch64
@@ -42,6 +42,10 @@ ctest --test-dir redhat-linux-build --output-on-failure
 %{_datadir}/icons/hicolor/scalable/apps/ro-assist.svg
 
 %changelog
+* Sun Sep 20 2026 Project Ro-ASD <contact@roasd.org> - 0.2.4-1
+- Capture the draft GitHub Release ID directly from the creation response to avoid list/read-after-write races.
+- Retry the Ro-Repo V2 production-signing canary without application behavior changes.
+
 * Sun Sep 20 2026 Project Ro-ASD <contact@roasd.org> - 0.2.3-1
 - Fix the release canary environment by installing createrepo_c before local-repository validation.
 - Retry the Ro-Repo V2 production-signing canary without application behavior changes.

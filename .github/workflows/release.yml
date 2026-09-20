@@ -153,7 +153,7 @@ jobs:
       - name: Install RPM query tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm
+          sudo apt-get install -y rpm jq
 
       - name: Validate exact RPM set
         shell: bash
@@ -181,14 +181,14 @@ jobs:
             gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/${EXISTING_ID}"
           fi
 
-          gh release create "$TAG" \
-            --draft \
-            --target "$GITHUB_SHA" \
-            --title "$TAG" \
-            --generate-notes
-
-          RELEASE_ID="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id" | head -n1)"
-          test -n "$RELEASE_ID"
+          RELEASE_JSON="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/releases" \
+            -f tag_name="${TAG}" \
+            -f target_commitish="${GITHUB_SHA}" \
+            -f name="${TAG}" \
+            -F draft=true \
+            -F generate_release_notes=true)"
+          RELEASE_ID="$(jq -r '.id' <<<"${RELEASE_JSON}")"
+          [[ "${RELEASE_ID}" =~ ^[0-9]+$ ]]
           echo "release_id=${RELEASE_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Generate strict checksums and component manifest
