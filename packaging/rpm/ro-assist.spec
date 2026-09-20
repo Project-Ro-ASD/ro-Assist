@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           ro-assist
-Version:        0.2.1
+Version:        0.2.2
 Release:        1%{?dist}
 Summary:        First-run and maintenance center for Ro-ASD systems
 ExclusiveArch:  x86_64 aarch64
@@ -42,6 +42,10 @@ ctest --test-dir redhat-linux-build --output-on-failure
 %{_datadir}/icons/hicolor/scalable/apps/ro-assist.svg
 
 %changelog
+* Sun Sep 20 2026 Project Ro-ASD <contact@roasd.org> - 0.2.2-1
+- Prepare a Ro-Repo V2 production-signing canary release with no application behavior changes.
+- Exercise the exact Fedora 44 RPM/SRPM, manifest, checksum, attestation, acceptance, and signing chain.
+
 * Mon Sep 07 2026 Project Ro-ASD <contact@roasd.org> - 0.2.1-1
 - Improve responsive layouts and the dark-theme About panel.
 - Run system-risk discovery asynchronously to keep the interface responsive.
