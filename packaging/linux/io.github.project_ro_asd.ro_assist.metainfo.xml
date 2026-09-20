@@ -24,6 +24,11 @@
   <url type="bugtracker">https://github.com/Project-Ro-ASD/ro-Assist/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.2" date="2026-09-20">
+      <description>
+        <p>Ro-Repo V2 production-signing canary release with unchanged application behavior.</p>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-09-07">
       <description>
         <p>Improved responsive layouts, dark-theme visual consistency, background system checks, and package validation.</p>
