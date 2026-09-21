@@ -73,7 +73,7 @@ jobs:
         run: |
           dnf install -y \
             gcc-c++ git cmake ninja-build rpm-build createrepo_c \
-            desktop-file-utils appstream \
+            desktop-file-utils appstream rpmlint \
             qt6-qtbase-devel qt6-qttools-devel
 
       - name: Build and validate package
@@ -111,6 +111,7 @@ jobs:
           [[ "$(rpm -qp --qf '%{RELEASE}' "$BINARY_RPM")" == *.fc44 ]]
 
           packaging/scripts/validate-fedora-rpm.sh "$BINARY_RPM"
+          rpmlint "$BINARY_RPM"
           cp "$BINARY_RPM" release-rpms/
 
           if [[ "${RPM_ARCH}" == "x86_64" ]]; then
