@@ -3,6 +3,13 @@
 All notable user-facing changes are documented here. Version numbers follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.5] - 2026-09-21
+
+### Packaging
+
+- Wrapped the RPM long description so Fedora rpmlint accepts the package metadata.
+- Added rpmlint to the producer release gate so packaging errors are caught before Ro-Repo acceptance.
+
 ## [0.2.1] - 2026-09-07
 
 ### Improved
