@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           ro-assist
-Version:        0.2.4
+Version:        0.2.5
 Release:        1%{?dist}
 Summary:        First-run and maintenance center for Ro-ASD systems
 ExclusiveArch:  x86_64 aarch64
@@ -18,7 +18,10 @@ BuildRequires:  desktop-file-utils
 BuildRequires:  appstream
 
 %description
-ro-Assist is a first-run and maintenance center for Ro-ASD systems. It guides users through controlled DNF, Flatpak, and Snap update workflows, basic setup actions, support links, and safe handoff to ro Control for hardware and driver status.
+ro-Assist is a first-run and maintenance center for Ro-ASD systems.
+It guides users through controlled DNF, Flatpak, and Snap update workflows,
+basic setup actions, support links, and safe handoff to ro Control for
+hardware and driver status.
 
 %prep
 %autosetup -p1
@@ -42,6 +45,10 @@ ctest --test-dir redhat-linux-build --output-on-failure
 %{_datadir}/icons/hicolor/scalable/apps/ro-assist.svg
 
 %changelog
+* Mon Sep 21 2026 Project Ro-ASD <contact@roasd.org> - 0.2.5-1
+- Fix RPM description formatting so rpmlint can validate release packages.
+- Add producer-side rpmlint gating before Ro-Repo acceptance.
+
 * Sun Sep 20 2026 Project Ro-ASD <contact@roasd.org> - 0.2.4-1
 - Capture the draft GitHub Release ID directly from the creation response to avoid list/read-after-write races.
 - Retry the Ro-Repo V2 production-signing canary without application behavior changes.

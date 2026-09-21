@@ -24,6 +24,11 @@
   <url type="bugtracker">https://github.com/Project-Ro-ASD/ro-Assist/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.5" date="2026-09-21">
+      <description>
+        <p>Packaging metadata fix and producer-side rpmlint release gating.</p>
+      </description>
+    </release>
     <release version="0.2.4" date="2026-09-20">
       <description>
         <p>Third Ro-Repo V2 production-signing canary with deterministic GitHub Release ID capture.</p>
