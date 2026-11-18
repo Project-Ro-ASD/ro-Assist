@@ -2,7 +2,7 @@
 
 Name:           ro-assist
 Version:        0.2.5
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        First-run and maintenance center for Ro-ASD systems
 ExclusiveArch:  x86_64 aarch64
 
@@ -45,6 +45,9 @@ ctest --test-dir redhat-linux-build --output-on-failure
 %{_datadir}/icons/hicolor/scalable/apps/ro-assist.svg
 
 %changelog
+* Wed Nov 18 2026 Project Ro-ASD <contact@roasd.org> - 0.2.5-2
+- Allocate a new RPM release for the R2 beta build.
+
 * Mon Sep 21 2026 Project Ro-ASD <contact@roasd.org> - 0.2.5-1
 - Fix RPM description formatting so rpmlint can validate release packages.
 - Add producer-side rpmlint gating before Ro-Repo acceptance.
